@@ -1,0 +1,6 @@
+django
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+moment
+my_library/dist/helperlibrary-1.0.tar.gz
