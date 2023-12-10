@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote for Drawings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+
+</head>
+
+<body class="bg-light">
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Drawing Competition</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="userdash.html">Submit Drawing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="vote.html">Vote Now</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="logOut()" href="#">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+
+        <!-- Vote for Drawings Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <h2>Vote for Drawings</h2>
+                <p class="text-muted">Browse through competitions and vote for your favorite drawings:</p>
+            </div>
+        </div>
+
+        <div style="display: none;" id="compcards" class="row">
+            <div class="col">
+                <div id="competitionAccordion">
+                </div>
+            </div>
+        </div>
+        <div id="nocompcards" class="row">
+            <div>
+                No Active Compititions yet
+            </div>
+        </div>
+    </div>
+
+
+    <script src="script.js"></script>
+    <script>
+        let allPhotos = [];
+        let allSubs = [];
+        let logg = JSON.parse(localStorage.getItem("logintoken"));
+        if (logg == null) {
+            location.href = "login.html";
+            alert("Login before viewing your entry")
+        }
+
+
+
+        fetchSubmissions()
+        async function fetchcomp() {
+            let res = await getData(BASE_URL + '/admin/viewcompitition/')
+            console.log('allcomps', res);
+            if (res) {
+                if ((res?.result)?.length == 0) {
+                    document.getElementById('compcards').style.display = 'none'
+                    document.getElementById('nocompcards').style.display = 'block'
+                }
+                else {
+                    document.getElementById('compcards').style.display = 'block'
+                    document.getElementById('nocompcards').style.display = 'none'
+                    createAccordion(res?.result)
+                }
+            }
+        }
+
+        async function fetchphotos() {
+            let res = await getData(BASE_URL + '/admin/fetchphoto/')
+            console.log('allphotos', res);
+            allPhotos = res?.result;
+            fetchcomp()
+        }
+
+        function createAccordion(data) {
+            var accordionContainer = document.getElementById('competitionAccordion');
+
+            data.forEach(function (competition, index) {
+                // Create accordion container
+                var accordion = document.createElement('div');
+                accordion.className = 'accordion';
+                accordion.id = 'accordionCompetition' + (index + 1);
+
+                // Create accordion item
+                var accordionItem = document.createElement('div');
+                accordionItem.className = 'accordion-item';
+
+                // Create accordion header
+                var accordionHeader = document.createElement('h2');
+                accordionHeader.className = 'accordion-header';
+                accordionHeader.id = 'competition' + (index + 1) + 'Header';
+
+                var accordionButton = document.createElement('button');
+                accordionButton.className = 'accordion-button';
+                accordionButton.type = 'button';
+                accordionButton.setAttribute('data-bs-toggle', 'collapse');
+                accordionButton.setAttribute('data-bs-target', '#collapseCompetition' + (index + 1));
+                accordionButton.setAttribute('aria-expanded', 'true');
+                accordionButton.setAttribute('aria-controls', 'collapseCompetition' + (index + 1));
+                accordionButton.textContent = competition.compname;
+
+                accordionHeader.appendChild(accordionButton);
+
+                // Create accordion body
+                var accordionBody = document.createElement('div');
+                accordionBody.id = 'collapseCompetition' + (index + 1);
+                accordionBody.className = 'accordion-collapse collapse show';
+                accordionBody.setAttribute('aria-labelledby', 'competition' + (index + 1) + 'Header');
+
+                var accordionBodyContent = document.createElement('div');
+                accordionBodyContent.className = 'accordion-body';
+
+                var entryListContainer = document.createElement('div');
+                entryListContainer.className = 'list-group';
+                entryListContainer.appendChild(createEntryList(competition));
+
+                accordionBodyContent.appendChild(entryListContainer);
+                accordionBody.appendChild(accordionBodyContent);
+
+                accordionItem.appendChild(accordionHeader);
+                accordionItem.appendChild(accordionBody);
+
+                accordion.appendChild(accordionItem);
+
+                accordionContainer.appendChild(accordion);
+            });
+        }
+
+        async function fetchSubmissions() {
+            let res = await getData(BASE_URL + '/admin/viewallsubmissions/')
+            console.log('allsubss', res);
+            allSubs = res?.result
+            fetchphotos()
+        }
+
+
+        function createEntryList(competition) {
+            let filteredPhotos = allPhotos.filter(a => a.compid == competition.id);
+
+            let entryListContainer = document.createElement('div');
+
+
+
+            filteredPhotos.forEach(function (entry) {
+                let ccount = (allSubs.filter(a => (entry.compid == a.compid && (entry.id).split('|')[0] == a.votedfor))).length
+                let entryItem = document.createElement('a');
+                entryItem.href = '#';
+                entryItem.classList.add('list-group-item', 'list-group-item-action');
+
+                let entryContent = document.createElement('div');
+                entryContent.classList.add('d-flex', 'w-100', 'justify-content-between');
+
+                let drawingName = document.createElement('h5');
+                drawingName.classList.add('mb-1');
+                drawingName.textContent = `Drawing Name: ${entry.desc}`;
+
+                let submittedBy = document.createElement('small');
+                submittedBy.textContent = `By: ${entry.submittedby}`;
+
+                entryContent.appendChild(drawingName);
+                entryContent.appendChild(submittedBy);
+
+                let entryImage = document.createElement('img');
+                entryImage.src = entry.imgurl;
+                entryImage.alt = 'Entry Photo';
+                entryImage.classList.add('img-fluid', 'mb-2');
+                entryImage.style.height = '200px';
+                entryImage.style.width = 'auto';
+                entryImage.style.margin = '20px';
+
+                let votesInfo = document.createElement('small');
+                votesInfo.classList.add('text-muted');
+                votesInfo.textContent = `Votes: ${ccount}`;
+
+                let voteButton = document.createElement('button');
+                voteButton.type = 'button';
+                voteButton.disabled = !(competition?.isactive)
+                voteButton.classList.add('btn', 'btn-primary', 'btn-sm', 'float-end');
+                voteButton.textContent = 'Vote';
+                voteButton.addEventListener('click', function () {
+                    voteNow(entry.id);
+                });
+
+                entryItem.appendChild(entryContent);
+                entryItem.appendChild(entryImage);
+                entryItem.appendChild(votesInfo);
+                entryItem.appendChild(voteButton);
+
+                entryListContainer.appendChild(entryItem);
+            });
+            return entryListContainer;
+        }
+
+        function voteNow(competitionID) {
+            console.log(competitionID);
+            let token = JSON.parse(localStorage.getItem("logintoken"));
+            postData(BASE_URL + '/user/vote/', {
+                compid: (competitionID.split('|'))[1],
+                votedfor: (competitionID.split('|'))[0]
+            }, token?.access)
+                .then(data => {
+                    location.reload();
+                })
+        }
+
+        function logOut() {
+            localStorage.removeItem("logintoken");
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+
+</html>
